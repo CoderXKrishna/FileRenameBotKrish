@@ -1,3 +1,28 @@
+import os
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
+# Replace YOUR_TELEGRAM_BOT_TOKEN with the token you received from BotFather
+updater = Updater(token='YOUR_TELEGRAM_BOT_TOKEN', use_context=True)
+dispatcher = updater.dispatcher
 
-custom: https://t.me/No_OnE_Kn0wS_Me
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Hi! This is a simple telegram bot.')
+
+def help_command(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Use /start to test this bot.')
+
+def main() -> None:
+    # Add handlers for commands
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("help", help_command))
+
+    # Start the bot
+    updater.start_polling()
+
+    # Run the bot until you press Ctrl+C or the process receives SIGINT,
+    # SIGTERM or SIGABRT
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
