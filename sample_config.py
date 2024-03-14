@@ -1,42 +1,36 @@
 import os
+import typing
 
-class Config(object):
+class Config:
     # get a token from @BotFather
-    TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "")
+    TG_BOT_TOKEN: str = os.environ.get("TG_BOT_TOKEN", "")
+    # check if TG_BOT_TOKEN is not an empty string
+    if not TG_BOT_TOKEN:
+        raise ValueError("TG_BOT_TOKEN environment variable is not set")
+
     # The Telegram API things
-    APP_ID = int(os.environ.get("APP_ID", 12345))
-    API_HASH = os.environ.get("API_HASH")
+    APP_ID: int = int(os.environ.get("APP_ID", 12345))
+    # check if APP_ID is a valid integer
+    if not isinstance(APP_ID, int):
+        raise ValueError("APP_ID environment variable is not a valid integer")
+
+    API_HASH: str = os.environ.get("API_HASH", "")
     # Update channel for Force Subscribe
-    UPDATE_CHANNEL = os.environ.get("UPDATE_CHANNEL", "")
+    UPDATE_CHANNEL: str = os.environ.get("UPDATE_CHANNEL", "")
     # log channel
-    #LOG_CHANNEL = os.environ.get("LOG_CHANNEL", "")
+    #LOG_CHANNEL: str = os.environ.get("LOG_CHANNEL", "")
     # Get these values from my.telegram.org
-    CHAT_ID = os.environ.get("CHAT_ID", "")
+    CHAT_ID: str = os.environ.get("CHAT_ID", "")
     # Array to store users who are authorized to use the bot
-    AUTH_USERS = set(int(x) for x in os.environ.get("AUTH_USERS", "").split())
-    # Banned Unwanted Members..
-    BANNED_USERS = []
+    AUTH_USERS: typing.Set[int] = set(int(x) for x in os.environ.get("AUTH_USERS", "").split())
+    # check if AUTH_USERS is not an empty set
+    if not AUTH_USERS:
+        raise ValueError("AUTH_USERS environment variable is not set")
+
+    BANNED_USERS: typing.List[int] = []
     # the download location, where the HTTP Server runs
-    DOWNLOAD_LOCATION = "./DOWNLOADS"
+    DOWNLOAD_LOCATION: str = "./DOWNLOADS"
     # Telegram maximum file upload size
-    MAX_FILE_SIZE = 50000000
-    TG_MAX_FILE_SIZE = 2097152000
-    FREE_USER_MAX_FILE_SIZE = 50000000
-    # chunk size that should be used with requests
-    CHUNK_SIZE = int(os.environ.get("CHUNK_SIZE", 128))
-    # default thumbnail to be used in the videos
-    DEF_THUMB_NAIL_VID_S = os.environ.get("DEF_THUMB_NAIL_VID_S", "https://placehold.it/90x90")
-    # proxy for accessing youtube-dl in GeoRestricted Areas
-    # Get your own proxy from https://github.com/rg3/youtube-dl/issues/1091#issuecomment-230163061
-    HTTP_PROXY = os.environ.get("HTTP_PROXY", "")
-    # https://t.me/hevcbay/951
-    OUO_IO_API_KEY = ""
-    # maximum message length in Telegram
-    MAX_MESSAGE_LENGTH = 4096
-    # set timeout for subprocess
-    PROCESS_MAX_TIMEOUT = 3600
-    # watermark file
-    DEF_WATER_MARK_FILE = ""
-    # Database url
-    DB_URI = os.environ.get("DATABASE_URL", "")
-    
+    MAX_FILE_SIZE: int = 50000000
+    TG_MAX_FILE_SIZE: int = 2097152000
+    FREE_USER_MAX_FILE_SIZE: int
