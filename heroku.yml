@@ -1,5 +1,15 @@
-build:
-  docker:
-    worker: Dockerfile
-run:
-  worker: bash start.sh
+version: "0.2"
+
+services:
+  builder:
+    image: "docker:latest"
+    volumes:
+      - "./:/app"
+    command: ["docker", "build", "-t", "my-app", "."]
+
+  runner:
+    image: "alpine:latest"
+    volumes:
+      - "./:/app"
+    command: ["bash", "/app/start.sh"]
+
