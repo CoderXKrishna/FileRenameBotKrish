@@ -1,15 +1,43 @@
 ---
 application:
-  name: "filerenamebot"
-  project: "renamebot"
-  organization: "QoveryCommunity"
+  name: filerenamebot
+  project: renamebot
+  organization: QoveryCommunity
+  environment_variables:
+    - name: CONNECTION_STRING
+      value: "mysql://username:password@database-host:3306/renamebotsj"
+
 databases:
-- type: "MYSQL"
-  name: "renamebotsj"
-  version: "8.0"
+- name: renamebotsj
+  type: mysql
+  version: 8.0
+  config:
+    settings:
+      collation: "utf8_general_ci"
+      encoding: "utf8"
+      timezone: "UTC"
+    extra:
+      max_connections: 500
+      connect_timeout: 10
+      wait_timeout: 3600
+      max_allowed_packet: 1073741824
+
 routers:
-- name: "main-filerenamebot"
+- name: main-filerenamebot
   routes:
-  - application_name: "filerenamebot"
+  - application_name: filerenamebot
     paths:
     - "/*"
+  config:
+    healthcheck:
+      type: http
+      path: "/health"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    upstreams:
+    - name: filerenamebot-upstream
+      type: roundrobin
+      servers:
+      - url: "http://localhost:8080"
+        weight: 1
