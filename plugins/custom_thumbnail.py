@@ -1,28 +1,23 @@
 import logging
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-logging.getLogger("pyrogram").setLevel(logging.WARNING)
-
 import os
 import pyrogram
-
-if bool(os.environ.get("WEBHOOK", False)):
-    from sample_config import Config
-else:
-    from config import Config
-
-from translation import Translation
 from pyrogram import filters
-from pyrogram import Client as MaI_BoTs
+from pyrogram.errors import FileIdInvalid, MessageNotModified
 
 import database.database as sql
 from PIL import Image
-from database.database import *
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+logging.getLogger("pyrogram").setLevel(logging.WARNING)
 
 
-@MaI_BoTs.on_message(filters.photo)
-async def save_photo(bot, update):
+class MyBot(pyrogram.Client):
+    pass
+
+
+@MyBot.on_message(filters.photo)
+async def save_photo(bot: MyBot, update):
     if update.from_user.id in Config.BANNED_USERS:
         await bot.delete_messages(
             chat_id=update.chat.id,
@@ -31,20 +26,15 @@ async def save_photo(bot, update):
         )
         return
 
+    download_location = get_download_location(update)
+
     if update.media_group_id is not None:
-        # album is sent
-        download_location = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + "/" + str(update.media_group_id) + "/"
-        # create download directory, if not exist
-        if not os.path.isdir(download_location):
-            os.makedirs(download_location)
         await sql.df_thumb(update.from_user.id, update.message_id)
         await bot.download_media(
             message=update,
             file_name=download_location
         )
     else:
-        # received single photo
-        download_location = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
         await sql.df_thumb(update.from_user.id, update.message_id)
         await bot.download_media(
             message=update,
@@ -57,8 +47,15 @@ async def save_photo(bot, update):
         )
 
 
-@MaI_BoTs.on_message(filters.command(["delthumb"]))
-async def delete_thumbnail(bot, update):
+def get_download_location(update):
+    if update.media_group_id is not None:
+        return Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + "/" + str(update.media_group_id) + "/"
+    else:
+        return Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
+
+
+@MyBot.on_message(filters.command(["delthumb"]))
+async def delete_thumbnail(bot: MyBot, update):
     if update.from_user.id in Config.BANNED_USERS:
         await bot.delete_messages(
             chat_id=update.chat.id,
@@ -68,17 +65,18 @@ async def delete_thumbnail(bot, update):
         return
 
     thumb_image_path = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
-    #download_location = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id)
-    
+
     try:
-        await sql.del_thumb(update.from_user.id) 
-        #os.remove(download_location + ".json")
+        await sql.del_thumb(update.from_user.id)
     except:
         pass
+
     try:
         os.remove(thumb_image_path)
-    except:
+    except FileNotFoundError:
         pass
+    except Exception as e:
+        logger.error(f"Error deleting thumbnail: {e}")
 
     await bot.send_message(
         chat_id=update.chat.id,
@@ -87,8 +85,8 @@ async def delete_thumbnail(bot, update):
     )
 
 
-@MaI_BoTs.on_message(filters.command(["showthumb"]))
-async def show_thumb(bot, update):
+@MyBot.on_message(filters.command(["showthumb"]))
+async def show_thumb(bot: MyBot, update):
     if update.from_user.id in Config.BANNED_USERS:
         await bot.delete_messages(
             chat_id=update.chat.id,
@@ -98,27 +96,36 @@ async def show_thumb(bot, update):
         return
 
     thumb_image_path = Config.DOWNLOAD_LOCATION + "/" + str(update.from_user.id) + ".jpg"
+
     if not os.path.exists(thumb_image_path):
         mes = await thumb(update.from_user.id)
-        if mes != None:
-            m = await bot.get_messages(update.chat.id, mes.msg_id)
-            await m.download(file_name=thumb_image_path)
-            thumb_image_path = thumb_image_path
-        else:
-            thumb_image_path = None    
-    
-    if thumb_image_path is not None:
-        try:
-            await bot.send_photo(
+        if mes is None:
+            await bot.send_message(
                 chat_id=update.chat.id,
-                photo=thumb_image_path,
+                text=Translation.NO_THUMB_FOUND,
                 reply_to_message_id=update.message_id
             )
-        except:
+            return
+
+        try:
+            async with bot.get_messages(update.chat.id, mes.msg_id) as m:
+                m = await m.download()
+                thumb_image_path = m.file_path
+        except FileIdInvalid:
             pass
-    else:
-        await bot.send_message(
+        except MessageNotModified:
+            pass
+        except Exception as e:
+            logger.error(f"Error downloading thumbnail: {e}")
+            return
+
+    try:
+        await bot.send_photo(
             chat_id=update.chat.id,
-            text=Translation.NO_THUMB_FOUND,
+            photo=thumb_image_path,
             reply_to_message_id=update.message_id
         )
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        logger.error(f"Error sending thumbnail: {e}")
