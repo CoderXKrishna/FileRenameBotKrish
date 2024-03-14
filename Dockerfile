@@ -1,17 +1,23 @@
-FROM ubuntu:20.04
+FROM python:3.8-slim-buster
 
+# Create app directory and set it as the working directory
+RUN mkdir -p /app && chown -R $USER:$USER /app
+WORKDIR /app
 
-RUN mkdir ./app
-RUN chmod 777 ./app
-WORKDIR ./app
+# Install required system packages
+RUN apt-get update && apt-get install -y \
+        git \
+        ffmpeg \
+        ca-certificates \
+        curl \
+        && rm -rf /var/lib/apt/lists/*
 
-RUN apt -qq update
-
-ENV DEBIAN_FRONTEND=noninteractive
+# Set environment variables
+ENV DEBIAN_FRONTEND noninteractive
 ENV TZ=Asia/Kolkata
 
-RUN apt -qq install -y git python3 ffmpeg python3-pip
+# Install python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
-COPY . .
+# Copy the current directory contents into the container at /app
+COPY . /app
